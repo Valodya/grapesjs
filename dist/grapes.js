@@ -225,10 +225,6 @@ module.exports = _iterableToArray;
 /***/ (function(module, exports) {
 
 function _iterableToArrayLimit(arr, i) {
-  if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
-    return;
-  }
-
   var _arr = [];
   var _n = true;
   var _d = false;
@@ -4399,10 +4395,28 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;
     }
   }
 
-  var Delayed = function() {this.id = null;};
+  var Delayed = function() {
+    this.id = null;
+    this.f = null;
+    this.time = 0;
+    this.handler = bind(this.onTimeout, this);
+  };
+  Delayed.prototype.onTimeout = function (self) {
+    self.id = 0;
+    if (self.time <= +new Date) {
+      self.f();
+    } else {
+      setTimeout(self.handler, self.time - +new Date);
+    }
+  };
   Delayed.prototype.set = function (ms, f) {
-    clearTimeout(this.id);
-    this.id = setTimeout(f, ms);
+    this.f = f;
+    var time = +new Date + ms;
+    if (!this.id || time < this.time) {
+      clearTimeout(this.id);
+      this.id = setTimeout(this.handler, ms);
+      this.time = time;
+    }
   };
 
   function indexOf(array, elt) {
@@ -13984,7 +13998,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;
 
   addLegacyProps(CodeMirror);
 
-  CodeMirror.version = "5.49.0";
+  CodeMirror.version = "5.49.2";
 
   return CodeMirror;
 
@@ -22853,6 +22867,8 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
       defaultCommands['tlb-move'] = {
         run: function run(ed, sender) {
           var opts = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+          console.log('defaultCommands[\'tlb-move\']');
+          return;
           var dragger;
           var em = ed.getModel();
           var event = opts && opts.event;
@@ -32021,10 +32037,11 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
     this.initClasses();
     this.initComponents({
       avoidRender: 1
-    });
-    this.events = _objectSpread({}, this.events, {}, draggableComponents && {
-      dragstart: 'handleDragStart'
-    });
+    }); // this.events = {
+    //   ...this.events,
+    //   ...(draggableComponents && { dragstart: 'handleDragStart' })
+    // };
+
     this.delegateEvents();
     !modelOpt.temporary && this.init(this._clbObj());
   },
@@ -32059,6 +32076,7 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
     return this;
   },
   handleDragStart: function handleDragStart(event) {
+    console.log('native handleDragStart', event, this);
     event.preventDefault();
     event.stopPropagation();
     this.em.get('Commands').run('tlb-move', {
@@ -35411,7 +35429,7 @@ var defaultConfig = {
   editors: editors,
   plugins: plugins,
   // Will be replaced on build
-  version: '0.15.6',
+  version: '0.15.8',
 
   /**
    * Initialize the editor with passed options
